@@ -28,6 +28,12 @@ jobs:
       - name: Build main
         uses: actions/checkout@v4
 
+      - name: check stuff
+        run: |
+          pwd
+          ls
+          cat Makefile
+          
       # Runs a single command using the runners shell
       - name: Run a one-line script to build main
         run: make main
