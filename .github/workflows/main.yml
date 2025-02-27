@@ -1,0 +1,64 @@
+# This is a basic workflow to help you get started with Actions
+
+name: mySoftHSMv2 Tests
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "*" ]
+    
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+  
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build_main:
+    name: Build main
+    # The type of runner that the job will run on
+    runs-on: ubuntu-22.04
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Build main
+      - uses: actions/checkout@v4
+
+      # Runs a single command using the runners shell
+      - name: Run a one-line script to build main
+        run: make main
+
+      - name: Checkout SoftHSMv2
+        uses: actions/checkout@v4
+        with:
+          repository: opendnssec/SoftHSMv2
+          path: softhsm
+          ref: ${{ matrix.ref }}
+      # Runs a set of commands using the runners shell
+      - name: Install dependencies for softhsm
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcppunit-dev automake autoconf libtool pkg-config
+          
+      - name: Build softhsm
+        working-directory: softhsm
+        run: |
+          sh autogen.sh
+          ./configure
+          make
+          sudo make install
+          
+      - name: Initialize softhsm
+        working-directory: softhsm
+        run:   softhsm2-util --init-token --slot 0 --label "Mytoken1"
+
+      - name: Test softhsm
+        working-directory: softhsm
+        run: export LD_LIBRARY_PATH=/usr/local/lib/softhsm
